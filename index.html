@@ -35,7 +35,7 @@ canvas {
     display: block;
     width: 100%;
     height: 100%;
-    image-rendering: pixelated;
+    touch-action: none;
 }
 
 /* =========================
@@ -50,11 +50,12 @@ canvas {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     pointer-events: none;
 }
 
 .panel {
-    background: rgba(20, 30, 20, 0.85);
+    background: rgba(20, 30, 20, 0.88);
     border: 1px solid rgba(255,255,255,0.18);
     border-radius: 12px;
     padding: 9px 13px;
@@ -69,6 +70,42 @@ canvas {
 
 #resources {
     font-size: 15px;
+    white-space: nowrap;
+}
+
+/* =========================
+   BOTTOM MENU
+========================= */
+
+#menu {
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
+.menuButton {
+    min-width: 95px;
+    min-height: 50px;
+    padding: 8px 14px;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 12px;
+    background: rgba(20,30,20,0.88);
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.menuButton:active {
+    transform: scale(0.96);
+}
+
+.menuButton.active {
+    background: rgba(90,120,70,0.95);
+    border-color: rgba(255,255,255,0.5);
 }
 
 /* =========================
@@ -78,9 +115,9 @@ canvas {
 #message {
     position: absolute;
     left: 50%;
-    bottom: 145px;
+    bottom: 155px;
     transform: translateX(-50%);
-    background: rgba(15,20,15,0.85);
+    background: rgba(15,20,15,0.9);
     color: white;
     padding: 10px 18px;
     border-radius: 10px;
@@ -89,6 +126,7 @@ canvas {
     transition: opacity 0.2s;
     pointer-events: none;
     white-space: nowrap;
+    z-index: 20;
 }
 
 #message.show {
@@ -105,6 +143,7 @@ canvas {
     bottom: 20px;
     width: 150px;
     height: 150px;
+    z-index: 10;
 }
 
 .control {
@@ -156,30 +195,54 @@ canvas {
     height: 85px;
     border-radius: 50%;
     border: 2px solid rgba(255,255,255,0.35);
-    background: rgba(80,50,25,0.85);
+    background: rgba(80,50,25,0.88);
     color: white;
     font-size: 15px;
     font-weight: bold;
     touch-action: none;
     user-select: none;
+    z-index: 10;
 }
 
 #action:active {
     transform: scale(0.94);
 }
 
-/* =========================
-   DESKTOP
-========================= */
+@media (max-width: 650px) {
 
-@media (min-width: 800px) {
+    #title {
+        font-size: 13px;
+    }
+
+    #resources {
+        font-size: 13px;
+    }
+
+    .menuButton {
+        min-width: 78px;
+        padding: 7px 8px;
+        font-size: 12px;
+    }
+
+    #menu {
+        bottom: 8px;
+    }
 
     #controls {
-        opacity: 0.65;
+        left: 10px;
+        bottom: 10px;
+        transform: scale(0.85);
+        transform-origin: bottom left;
     }
 
     #action {
-        opacity: 0.65;
+        right: 12px;
+        bottom: 15px;
+        transform: scale(0.85);
+    }
+
+    #action:active {
+        transform: scale(0.8);
     }
 }
 </style>
@@ -205,6 +268,21 @@ canvas {
 
     <div id="message"></div>
 
+    <!-- MENU -->
+
+    <div id="menu">
+
+        <button class="menuButton" id="buildHouse">
+            🏠 สร้างบ้าน<br>
+            <small>5 🪵</small>
+        </button>
+
+        <button class="menuButton" id="cancelBuild">
+            ❌ ยกเลิก
+        </button>
+
+    </div>
+
     <!-- MOBILE CONTROLLER -->
 
     <div id="controls">
@@ -216,8 +294,11 @@ canvas {
 
     </div>
 
+    <!-- ACTION -->
+
     <button id="action">
-        🪓<br>เก็บไม้
+        🪓<br>
+        เก็บไม้
     </button>
 
 </div>
@@ -225,7 +306,7 @@ canvas {
 <script>
 
 /* =====================================================
-   GAME SETUP
+   SETUP
 ===================================================== */
 
 const canvas = document.getElementById("canvas");
@@ -234,12 +315,19 @@ const ctx = canvas.getContext("2d");
 const woodText = document.getElementById("wood");
 const message = document.getElementById("message");
 
+const buildHouseButton =
+    document.getElementById("buildHouse");
+
+const cancelBuildButton =
+    document.getElementById("cancelBuild");
+
 let width = 0;
 let height = 0;
 
 function resize() {
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr =
+        Math.min(window.devicePixelRatio || 1, 2);
 
     width = window.innerWidth;
     height = window.innerHeight;
@@ -250,32 +338,52 @@ function resize() {
     canvas.style.width = width + "px";
     canvas.style.height = height + "px";
 
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
 }
 
 window.addEventListener("resize", resize);
+
 resize();
+
+
+/* =====================================================
+   PLAYER
+===================================================== */
+
+const player = {
+
+    x: 0,
+    y: 0,
+
+    speed: 3
+
+};
 
 
 /* =====================================================
    GAME STATE
 ===================================================== */
 
-const player = {
-    x: 0,
-    y: 0,
-    speed: 3
-};
-
 let wood = 0;
+
+let buildingMode = false;
 
 let dayTime = 0;
 
 const keys = {
+
     up: false,
     down: false,
     left: false,
     right: false
+
 };
 
 
@@ -289,7 +397,13 @@ function createTrees() {
 
     trees.length = 0;
 
-    const count = Math.max(35, Math.floor((width * height) / 18000));
+    const count =
+        Math.max(
+            35,
+            Math.floor(
+                (width * height) / 18000
+            )
+        );
 
     for (let i = 0; i < count; i++) {
 
@@ -302,13 +416,21 @@ function createTrees() {
             y = Math.random() * height;
 
         } while (
-            distance(x, y, width / 2, height / 2) < 180
+            distance(
+                x,
+                y,
+                width / 2,
+                height / 2
+            ) < 180
         );
 
         trees.push({
+
             x: x,
             y: y,
+
             collected: false
+
         });
     }
 }
@@ -317,13 +439,18 @@ createTrees();
 
 
 /* =====================================================
-   HOUSE
+   HOUSES
 ===================================================== */
 
-const house = {
-    x: 0,
-    y: 0
-};
+const houses = [
+
+    {
+        x: 0,
+        y: 0,
+        playerHouse: true
+    }
+
+];
 
 
 /* =====================================================
@@ -332,11 +459,17 @@ const house = {
 
 function resetPlayer() {
 
-    player.x = width / 2;
-    player.y = height / 2 + 40;
+    player.x =
+        width / 2;
 
-    house.x = width / 2;
-    house.y = height / 2 - 55;
+    player.y =
+        height / 2 + 40;
+
+    houses[0].x =
+        width / 2;
+
+    houses[0].y =
+        height / 2 - 55;
 }
 
 resetPlayer();
@@ -346,24 +479,40 @@ resetPlayer();
    UTILITIES
 ===================================================== */
 
-function distance(x1, y1, x2, y2) {
+function distance(
+    x1,
+    y1,
+    x2,
+    y2
+) {
 
     return Math.sqrt(
+
         (x1 - x2) ** 2 +
         (y1 - y2) ** 2
+
     );
 }
+
 
 function showMessage(text) {
 
     message.textContent = text;
+
     message.classList.add("show");
 
-    clearTimeout(showMessage.timer);
+    clearTimeout(
+        showMessage.timer
+    );
 
-    showMessage.timer = setTimeout(() => {
-        message.classList.remove("show");
-    }, 1800);
+    showMessage.timer =
+        setTimeout(() => {
+
+            message.classList.remove(
+                "show"
+            );
+
+        }, 1800);
 }
 
 
@@ -371,85 +520,145 @@ function showMessage(text) {
    KEYBOARD
 ===================================================== */
 
-window.addEventListener("keydown", e => {
+window.addEventListener(
+    "keydown",
+    e => {
 
-    if (e.key === "w" || e.key === "ArrowUp")
-        keys.up = true;
+        if (
+            e.key === "w" ||
+            e.key === "ArrowUp"
+        )
+            keys.up = true;
 
-    if (e.key === "s" || e.key === "ArrowDown")
-        keys.down = true;
+        if (
+            e.key === "s" ||
+            e.key === "ArrowDown"
+        )
+            keys.down = true;
 
-    if (e.key === "a" || e.key === "ArrowLeft")
-        keys.left = true;
+        if (
+            e.key === "a" ||
+            e.key === "ArrowLeft"
+        )
+            keys.left = true;
 
-    if (e.key === "d" || e.key === "ArrowRight")
-        keys.right = true;
+        if (
+            e.key === "d" ||
+            e.key === "ArrowRight"
+        )
+            keys.right = true;
 
-    if (e.code === "Space")
-        collectWood();
-});
+        if (
+            e.code === "Space"
+        )
+            collectWood();
 
-window.addEventListener("keyup", e => {
+    }
+);
 
-    if (e.key === "w" || e.key === "ArrowUp")
-        keys.up = false;
 
-    if (e.key === "s" || e.key === "ArrowDown")
-        keys.down = false;
+window.addEventListener(
+    "keyup",
+    e => {
 
-    if (e.key === "a" || e.key === "ArrowLeft")
-        keys.left = false;
+        if (
+            e.key === "w" ||
+            e.key === "ArrowUp"
+        )
+            keys.up = false;
 
-    if (e.key === "d" || e.key === "ArrowRight")
-        keys.right = false;
-});
+        if (
+            e.key === "s" ||
+            e.key === "ArrowDown"
+        )
+            keys.down = false;
+
+        if (
+            e.key === "a" ||
+            e.key === "ArrowLeft"
+        )
+            keys.left = false;
+
+        if (
+            e.key === "d" ||
+            e.key === "ArrowRight"
+        )
+            keys.right = false;
+
+    }
+);
 
 
 /* =====================================================
    MOBILE BUTTONS
 ===================================================== */
 
-document.querySelectorAll(".control").forEach(button => {
+document
+    .querySelectorAll(".control")
+    .forEach(button => {
 
-    const key = button.dataset.key;
+        const key =
+            button.dataset.key;
 
-    button.addEventListener("pointerdown", e => {
+        button.addEventListener(
+            "pointerdown",
+            e => {
 
-        e.preventDefault();
-        keys[key] = true;
+                e.preventDefault();
+
+                keys[key] = true;
+
+            }
+        );
+
+        button.addEventListener(
+            "pointerup",
+            e => {
+
+                e.preventDefault();
+
+                keys[key] = false;
+
+            }
+        );
+
+        button.addEventListener(
+            "pointercancel",
+            () => {
+
+                keys[key] = false;
+
+            }
+        );
+
+        button.addEventListener(
+            "pointerleave",
+            () => {
+
+                keys[key] = false;
+
+            }
+        );
 
     });
-
-    button.addEventListener("pointerup", e => {
-
-        e.preventDefault();
-        keys[key] = false;
-
-    });
-
-    button.addEventListener("pointercancel", () => {
-        keys[key] = false;
-    });
-
-    button.addEventListener("pointerleave", () => {
-        keys[key] = false;
-    });
-});
 
 
 /* =====================================================
    ACTION BUTTON
 ===================================================== */
 
-document.getElementById("action").addEventListener(
-    "pointerdown",
-    e => {
+document
+    .getElementById("action")
+    .addEventListener(
+        "pointerdown",
+        e => {
 
-        e.preventDefault();
-        collectWood();
+            e.preventDefault();
 
-    }
-);
+            collectWood();
+
+        }
+    );
 
 
 /* =====================================================
@@ -459,47 +668,244 @@ document.getElementById("action").addEventListener(
 function collectWood() {
 
     let closest = null;
-    let closestDistance = 999999;
 
-    for (const tree of trees) {
+    let closestDistance =
+        Infinity;
+
+    for (
+        const tree of trees
+    ) {
 
         if (tree.collected)
             continue;
 
-        const d = distance(
-            player.x,
-            player.y,
-            tree.x,
-            tree.y
-        );
+        const d =
+            distance(
+                player.x,
+                player.y,
+                tree.x,
+                tree.y
+            );
 
-        if (d < closestDistance) {
+        if (
+            d < closestDistance
+        ) {
 
             closestDistance = d;
+
             closest = tree;
+
         }
     }
 
-    if (closest && closestDistance < 65) {
+    if (
+        closest &&
+        closestDistance < 65
+    ) {
 
-        closest.collected = true;
+        closest.collected =
+            true;
 
-        wood += 1;
+        wood++;
 
-        woodText.textContent = wood;
+        woodText.textContent =
+            wood;
 
-        showMessage("🪵 ได้ไม้ +1");
+        showMessage(
+            "🪵 ได้ไม้ +1"
+        );
 
     } else {
 
-        showMessage("🌲 เข้าใกล้ต้นไม้ก่อน");
+        showMessage(
+            "🌲 เข้าใกล้ต้นไม้ก่อน"
+        );
 
     }
 }
 
 
 /* =====================================================
-   UPDATE PLAYER
+   BUILD MODE
+===================================================== */
+
+buildHouseButton.addEventListener(
+    "click",
+    () => {
+
+        if (wood < 5) {
+
+            showMessage(
+                "🪵 ต้องมีไม้ 5 ชิ้น"
+            );
+
+            return;
+        }
+
+        buildingMode = true;
+
+        buildHouseButton.classList.add(
+            "active"
+        );
+
+        showMessage(
+            "🏠 แตะพื้นที่เพื่อสร้างบ้าน"
+        );
+
+    }
+);
+
+
+cancelBuildButton.addEventListener(
+    "click",
+    () => {
+
+        buildingMode = false;
+
+        buildHouseButton.classList.remove(
+            "active"
+        );
+
+        showMessage(
+            "ยกเลิกการสร้าง"
+        );
+
+    }
+);
+
+
+/* =====================================================
+   PLACE HOUSE
+===================================================== */
+
+canvas.addEventListener(
+    "pointerdown",
+    e => {
+
+        if (!buildingMode)
+            return;
+
+        const rect =
+            canvas.getBoundingClientRect();
+
+        const x =
+            e.clientX -
+            rect.left;
+
+        const y =
+            e.clientY -
+            rect.top;
+
+        placeHouse(x, y);
+
+    }
+);
+
+
+function placeHouse(x, y) {
+
+    /* ตรวจต้นไม้ */
+
+    for (
+        const tree of trees
+    ) {
+
+        if (tree.collected)
+            continue;
+
+        if (
+            distance(
+                x,
+                y,
+                tree.x,
+                tree.y
+            ) < 55
+        ) {
+
+            showMessage(
+                "🌲 ตรงนี้มีต้นไม้อยู่"
+            );
+
+            return;
+
+        }
+    }
+
+
+    /* ตรวจบ้าน */
+
+    for (
+        const house of houses
+    ) {
+
+        if (
+            distance(
+                x,
+                y,
+                house.x,
+                house.y
+            ) < 80
+        ) {
+
+            showMessage(
+                "🏠 ใกล้บ้านเกินไป"
+            );
+
+            return;
+
+        }
+    }
+
+
+    /* ตรวจขอบแผนที่ */
+
+    if (
+        x < 60 ||
+        x > width - 60 ||
+        y < 100 ||
+        y > height - 70
+    ) {
+
+        showMessage(
+            "🚫 สร้างตรงนี้ไม่ได้"
+        );
+
+        return;
+
+    }
+
+
+    /* สร้างบ้าน */
+
+    wood -= 5;
+
+    woodText.textContent =
+        wood;
+
+    houses.push({
+
+        x: x,
+        y: y,
+
+        playerHouse: false
+
+    });
+
+
+    buildingMode = false;
+
+    buildHouseButton.classList.remove(
+        "active"
+    );
+
+    showMessage(
+        "🏠 สร้างบ้านสำเร็จ!"
+    );
+}
+
+
+/* =====================================================
+   UPDATE
 ===================================================== */
 
 function update() {
@@ -507,65 +913,121 @@ function update() {
     let dx = 0;
     let dy = 0;
 
-    if (keys.left) dx -= 1;
-    if (keys.right) dx += 1;
+    if (keys.left)
+        dx--;
 
-    if (keys.up) dy -= 1;
-    if (keys.down) dy += 1;
+    if (keys.right)
+        dx++;
 
-    if (dx !== 0 || dy !== 0) {
+    if (keys.up)
+        dy--;
 
-        const length = Math.sqrt(dx * dx + dy * dy);
+    if (keys.down)
+        dy++;
+
+
+    if (
+        dx !== 0 ||
+        dy !== 0
+    ) {
+
+        const length =
+            Math.sqrt(
+                dx * dx +
+                dy * dy
+            );
 
         dx /= length;
         dy /= length;
 
-        player.x += dx * player.speed;
-        player.y += dy * player.speed;
+        player.x +=
+            dx * player.speed;
+
+        player.y +=
+            dy * player.speed;
     }
 
-    /* keep inside map */
 
-    player.x = Math.max(25, Math.min(width - 25, player.x));
-    player.y = Math.max(70, Math.min(height - 25, player.y));
+    player.x =
+        Math.max(
+            25,
+            Math.min(
+                width - 25,
+                player.x
+            )
+        );
+
+    player.y =
+        Math.max(
+            70,
+            Math.min(
+                height - 25,
+                player.y
+            )
+        );
+
 
     dayTime += 0.002;
 }
 
 
 /* =====================================================
-   DRAW
+   DRAW GROUND
 ===================================================== */
 
 function drawGround() {
 
-    ctx.fillStyle = "#4f8a43";
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle =
+        "#4f8a43";
 
-    /* grass details */
+    ctx.fillRect(
+        0,
+        0,
+        width,
+        height
+    );
 
-    for (let i = 0; i < 180; i++) {
 
-        const x = (i * 97) % width;
-        const y = (i * 53) % height;
+    for (
+        let i = 0;
+        i < 180;
+        i++
+    ) {
 
-        ctx.fillStyle = "#3f7437";
+        const x =
+            (i * 97) % width;
 
-        ctx.fillRect(x, y, 3, 3);
+        const y =
+            (i * 53) % height;
+
+        ctx.fillStyle =
+            "#3f7437";
+
+        ctx.fillRect(
+            x,
+            y,
+            3,
+            3
+        );
     }
 }
 
+
+/* =====================================================
+   DRAW TREE
+===================================================== */
 
 function drawTree(tree) {
 
     if (tree.collected)
         return;
 
-    /* shadow */
 
-    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillStyle =
+        "rgba(0,0,0,0.18)";
 
     ctx.beginPath();
+
     ctx.ellipse(
         tree.x,
         tree.y + 22,
@@ -575,11 +1037,12 @@ function drawTree(tree) {
         0,
         Math.PI * 2
     );
+
     ctx.fill();
 
-    /* trunk */
 
-    ctx.fillStyle = "#68452b";
+    ctx.fillStyle =
+        "#68452b";
 
     ctx.fillRect(
         tree.x - 6,
@@ -588,33 +1051,64 @@ function drawTree(tree) {
         25
     );
 
-    /* leaves */
 
-    ctx.fillStyle = "#285c2c";
+    ctx.fillStyle =
+        "#285c2c";
 
     ctx.beginPath();
-    ctx.arc(tree.x, tree.y - 8, 25, 0, Math.PI * 2);
+
+    ctx.arc(
+        tree.x,
+        tree.y - 8,
+        25,
+        0,
+        Math.PI * 2
+    );
+
     ctx.fill();
 
-    ctx.fillStyle = "#34763a";
+
+    ctx.fillStyle =
+        "#34763a";
 
     ctx.beginPath();
-    ctx.arc(tree.x - 12, tree.y - 2, 17, 0, Math.PI * 2);
+
+    ctx.arc(
+        tree.x - 12,
+        tree.y - 2,
+        17,
+        0,
+        Math.PI * 2
+    );
+
     ctx.fill();
 
+
     ctx.beginPath();
-    ctx.arc(tree.x + 12, tree.y - 2, 17, 0, Math.PI * 2);
+
+    ctx.arc(
+        tree.x + 12,
+        tree.y - 2,
+        17,
+        0,
+        Math.PI * 2
+    );
+
     ctx.fill();
 }
 
 
-function drawHouse() {
+/* =====================================================
+   DRAW HOUSE
+===================================================== */
 
-    /* shadow */
+function drawHouse(house) {
 
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.fillStyle =
+        "rgba(0,0,0,0.25)";
 
     ctx.beginPath();
+
     ctx.ellipse(
         house.x,
         house.y + 35,
@@ -624,11 +1118,12 @@ function drawHouse() {
         0,
         Math.PI * 2
     );
+
     ctx.fill();
 
-    /* body */
 
-    ctx.fillStyle = "#a8784b";
+    ctx.fillStyle =
+        "#a8784b";
 
     ctx.fillRect(
         house.x - 35,
@@ -637,9 +1132,9 @@ function drawHouse() {
         45
     );
 
-    /* roof */
 
-    ctx.fillStyle = "#713d2b";
+    ctx.fillStyle =
+        "#713d2b";
 
     ctx.beginPath();
 
@@ -662,9 +1157,9 @@ function drawHouse() {
 
     ctx.fill();
 
-    /* door */
 
-    ctx.fillStyle = "#42291d";
+    ctx.fillStyle =
+        "#42291d";
 
     ctx.fillRect(
         house.x - 9,
@@ -673,25 +1168,34 @@ function drawHouse() {
         26
     );
 
-    /* sign */
 
-    ctx.fillStyle = "white";
-    ctx.font = "13px Arial";
-    ctx.textAlign = "center";
+    ctx.fillStyle =
+        "white";
+
+    ctx.font =
+        "13px Arial";
+
+    ctx.textAlign =
+        "center";
 
     ctx.fillText(
-        "บ้านของฉัน",
+        house.playerHouse
+            ? "บ้านของฉัน"
+            : "บ้านชาวบ้าน",
         house.x,
         house.y - 48
     );
 }
 
 
+/* =====================================================
+   DRAW PLAYER
+===================================================== */
+
 function drawPlayer() {
 
-    /* shadow */
-
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.fillStyle =
+        "rgba(0,0,0,0.25)";
 
     ctx.beginPath();
 
@@ -707,9 +1211,9 @@ function drawPlayer() {
 
     ctx.fill();
 
-    /* body */
 
-    ctx.fillStyle = "#315b8c";
+    ctx.fillStyle =
+        "#315b8c";
 
     ctx.fillRect(
         player.x - 10,
@@ -718,9 +1222,9 @@ function drawPlayer() {
         20
     );
 
-    /* head */
 
-    ctx.fillStyle = "#f0bd91";
+    ctx.fillStyle =
+        "#f0bd91";
 
     ctx.beginPath();
 
@@ -734,9 +1238,9 @@ function drawPlayer() {
 
     ctx.fill();
 
-    /* hair */
 
-    ctx.fillStyle = "#38271f";
+    ctx.fillStyle =
+        "#38271f";
 
     ctx.beginPath();
 
@@ -752,12 +1256,56 @@ function drawPlayer() {
 }
 
 
+/* =====================================================
+   BUILD PREVIEW
+===================================================== */
+
+function drawBuildHint() {
+
+    if (!buildingMode)
+        return;
+
+
+    ctx.fillStyle =
+        "rgba(255,255,255,0.15)";
+
+    ctx.fillRect(
+        10,
+        height - 90,
+        width - 20,
+        55
+    );
+
+
+    ctx.fillStyle =
+        "white";
+
+    ctx.font =
+        "14px Arial";
+
+    ctx.textAlign =
+        "center";
+
+    ctx.fillText(
+        "🏠 โหมดสร้างบ้าน — แตะหรือคลิกพื้นที่ว่าง",
+        width / 2,
+        height - 57
+    );
+}
+
+
+/* =====================================================
+   NIGHT
+===================================================== */
+
 function drawNight() {
 
     const darkness =
         (Math.sin(dayTime) + 1) / 2;
 
-    if (darkness > 0.72) {
+    if (
+        darkness > 0.72
+    ) {
 
         const alpha =
             (darkness - 0.72) * 0.9;
@@ -785,21 +1333,37 @@ function gameLoop() {
 
     drawGround();
 
-    for (const tree of trees)
+
+    for (
+        const tree of trees
+    )
         drawTree(tree);
 
-    drawHouse();
+
+    for (
+        const house of houses
+    )
+        drawHouse(house);
+
 
     drawPlayer();
 
+    drawBuildHint();
+
     drawNight();
 
-    requestAnimationFrame(gameLoop);
+
+    requestAnimationFrame(
+        gameLoop
+    );
 }
+
 
 gameLoop();
 
-showMessage("🌲 ยินดีต้อนรับสู่ต่างโลก");
+showMessage(
+    "🌲 เก็บไม้ 5 ชิ้น แล้วสร้างบ้านได้"
+);
 
 </script>
 
