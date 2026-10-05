@@ -1,70 +1,808 @@
+```html
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <title>อยากโดดเดี่ยวในต่างโลก</title>
+<title>อยากโดดเดี่ยวในต่างโลก</title>
 
-    <style>
-        body {
-            margin: 0;
-            background: #101510;
-            color: white;
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
+<style>
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
 
-        .game {
-            padding: 40px 20px;
-        }
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #101810;
+}
 
-        h1 {
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
+#game {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #4f8a43;
+}
 
-        p {
-            color: #b8c5b8;
-        }
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+}
 
-        .start {
-            margin-top: 30px;
-            padding: 15px 35px;
-            font-size: 18px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-        }
+/* =========================
+   TOP BAR
+========================= */
 
-        .start:hover {
-            transform: scale(1.05);
-        }
-    </style>
+#topbar {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+}
+
+.panel {
+    background: rgba(20, 30, 20, 0.85);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    padding: 9px 13px;
+    color: white;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+}
+
+#title {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#resources {
+    font-size: 15px;
+}
+
+/* =========================
+   MESSAGE
+========================= */
+
+#message {
+    position: absolute;
+    left: 50%;
+    bottom: 145px;
+    transform: translateX(-50%);
+    background: rgba(15,20,15,0.85);
+    color: white;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+#message.show {
+    opacity: 1;
+}
+
+/* =========================
+   MOBILE CONTROLLER
+========================= */
+
+#controls {
+    position: absolute;
+    left: 20px;
+    bottom: 20px;
+    width: 150px;
+    height: 150px;
+}
+
+.control {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(20,30,20,0.75);
+    color: white;
+    font-size: 22px;
+    touch-action: none;
+    user-select: none;
+}
+
+.control:active {
+    background: rgba(255,255,255,0.3);
+}
+
+.up {
+    left: 50px;
+    top: 0;
+}
+
+.down {
+    left: 50px;
+    bottom: 0;
+}
+
+.left {
+    left: 0;
+    top: 50px;
+}
+
+.right {
+    right: 0;
+    top: 50px;
+}
+
+/* =========================
+   ACTION BUTTON
+========================= */
+
+#action {
+    position: absolute;
+    right: 25px;
+    bottom: 35px;
+    width: 85px;
+    height: 85px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.35);
+    background: rgba(80,50,25,0.85);
+    color: white;
+    font-size: 15px;
+    font-weight: bold;
+    touch-action: none;
+    user-select: none;
+}
+
+#action:active {
+    transform: scale(0.94);
+}
+
+/* =========================
+   DESKTOP
+========================= */
+
+@media (min-width: 800px) {
+
+    #controls {
+        opacity: 0.65;
+    }
+
+    #action {
+        opacity: 0.65;
+    }
+}
+</style>
 </head>
 
 <body>
 
-    <div class="game">
+<div id="game">
 
-        <h1>🌲 อยากโดดเดี่ยวในต่างโลก</h1>
+    <canvas id="canvas"></canvas>
 
-        <p>จากบ้านหลังเล็ก... สู่เมืองของเรา</p>
+    <div id="topbar">
 
-        <button class="start" onclick="startGame()">
-            เริ่มเกม
-        </button>
+        <div class="panel" id="title">
+            🌲 อยากโดดเดี่ยวในต่างโลก
+        </div>
 
-        <p id="message"></p>
+        <div class="panel" id="resources">
+            🪵 ไม้: <span id="wood">0</span>
+        </div>
 
     </div>
 
-    <script>
-        function startGame() {
-            document.getElementById("message").textContent =
-                "กำลังเดินทางเข้าสู่ต่างโลก...";
+    <div id="message"></div>
+
+    <!-- MOBILE CONTROLLER -->
+
+    <div id="controls">
+
+        <button class="control up" data-key="up">▲</button>
+        <button class="control down" data-key="down">▼</button>
+        <button class="control left" data-key="left">◀</button>
+        <button class="control right" data-key="right">▶</button>
+
+    </div>
+
+    <button id="action">
+        🪓<br>เก็บไม้
+    </button>
+
+</div>
+
+<script>
+
+/* =====================================================
+   GAME SETUP
+===================================================== */
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const woodText = document.getElementById("wood");
+const message = document.getElementById("message");
+
+let width = 0;
+let height = 0;
+
+function resize() {
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    width = window.innerWidth;
+    height = window.innerHeight;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+window.addEventListener("resize", resize);
+resize();
+
+
+/* =====================================================
+   GAME STATE
+===================================================== */
+
+const player = {
+    x: 0,
+    y: 0,
+    speed: 3
+};
+
+let wood = 0;
+
+let dayTime = 0;
+
+const keys = {
+    up: false,
+    down: false,
+    left: false,
+    right: false
+};
+
+
+/* =====================================================
+   TREES
+===================================================== */
+
+const trees = [];
+
+function createTrees() {
+
+    trees.length = 0;
+
+    const count = Math.max(35, Math.floor((width * height) / 18000));
+
+    for (let i = 0; i < count; i++) {
+
+        let x;
+        let y;
+
+        do {
+
+            x = Math.random() * width;
+            y = Math.random() * height;
+
+        } while (
+            distance(x, y, width / 2, height / 2) < 180
+        );
+
+        trees.push({
+            x: x,
+            y: y,
+            collected: false
+        });
+    }
+}
+
+createTrees();
+
+
+/* =====================================================
+   HOUSE
+===================================================== */
+
+const house = {
+    x: 0,
+    y: 0
+};
+
+
+/* =====================================================
+   START POSITION
+===================================================== */
+
+function resetPlayer() {
+
+    player.x = width / 2;
+    player.y = height / 2 + 40;
+
+    house.x = width / 2;
+    house.y = height / 2 - 55;
+}
+
+resetPlayer();
+
+
+/* =====================================================
+   UTILITIES
+===================================================== */
+
+function distance(x1, y1, x2, y2) {
+
+    return Math.sqrt(
+        (x1 - x2) ** 2 +
+        (y1 - y2) ** 2
+    );
+}
+
+function showMessage(text) {
+
+    message.textContent = text;
+    message.classList.add("show");
+
+    clearTimeout(showMessage.timer);
+
+    showMessage.timer = setTimeout(() => {
+        message.classList.remove("show");
+    }, 1800);
+}
+
+
+/* =====================================================
+   KEYBOARD
+===================================================== */
+
+window.addEventListener("keydown", e => {
+
+    if (e.key === "w" || e.key === "ArrowUp")
+        keys.up = true;
+
+    if (e.key === "s" || e.key === "ArrowDown")
+        keys.down = true;
+
+    if (e.key === "a" || e.key === "ArrowLeft")
+        keys.left = true;
+
+    if (e.key === "d" || e.key === "ArrowRight")
+        keys.right = true;
+
+    if (e.code === "Space")
+        collectWood();
+});
+
+window.addEventListener("keyup", e => {
+
+    if (e.key === "w" || e.key === "ArrowUp")
+        keys.up = false;
+
+    if (e.key === "s" || e.key === "ArrowDown")
+        keys.down = false;
+
+    if (e.key === "a" || e.key === "ArrowLeft")
+        keys.left = false;
+
+    if (e.key === "d" || e.key === "ArrowRight")
+        keys.right = false;
+});
+
+
+/* =====================================================
+   MOBILE BUTTONS
+===================================================== */
+
+document.querySelectorAll(".control").forEach(button => {
+
+    const key = button.dataset.key;
+
+    button.addEventListener("pointerdown", e => {
+
+        e.preventDefault();
+        keys[key] = true;
+
+    });
+
+    button.addEventListener("pointerup", e => {
+
+        e.preventDefault();
+        keys[key] = false;
+
+    });
+
+    button.addEventListener("pointercancel", () => {
+        keys[key] = false;
+    });
+
+    button.addEventListener("pointerleave", () => {
+        keys[key] = false;
+    });
+});
+
+
+/* =====================================================
+   ACTION BUTTON
+===================================================== */
+
+document.getElementById("action").addEventListener(
+    "pointerdown",
+    e => {
+
+        e.preventDefault();
+        collectWood();
+
+    }
+);
+
+
+/* =====================================================
+   COLLECT WOOD
+===================================================== */
+
+function collectWood() {
+
+    let closest = null;
+    let closestDistance = 999999;
+
+    for (const tree of trees) {
+
+        if (tree.collected)
+            continue;
+
+        const d = distance(
+            player.x,
+            player.y,
+            tree.x,
+            tree.y
+        );
+
+        if (d < closestDistance) {
+
+            closestDistance = d;
+            closest = tree;
         }
-    </script>
+    }
+
+    if (closest && closestDistance < 65) {
+
+        closest.collected = true;
+
+        wood += 1;
+
+        woodText.textContent = wood;
+
+        showMessage("🪵 ได้ไม้ +1");
+
+    } else {
+
+        showMessage("🌲 เข้าใกล้ต้นไม้ก่อน");
+
+    }
+}
+
+
+/* =====================================================
+   UPDATE PLAYER
+===================================================== */
+
+function update() {
+
+    let dx = 0;
+    let dy = 0;
+
+    if (keys.left) dx -= 1;
+    if (keys.right) dx += 1;
+
+    if (keys.up) dy -= 1;
+    if (keys.down) dy += 1;
+
+    if (dx !== 0 || dy !== 0) {
+
+        const length = Math.sqrt(dx * dx + dy * dy);
+
+        dx /= length;
+        dy /= length;
+
+        player.x += dx * player.speed;
+        player.y += dy * player.speed;
+    }
+
+    /* keep inside map */
+
+    player.x = Math.max(25, Math.min(width - 25, player.x));
+    player.y = Math.max(70, Math.min(height - 25, player.y));
+
+    dayTime += 0.002;
+}
+
+
+/* =====================================================
+   DRAW
+===================================================== */
+
+function drawGround() {
+
+    ctx.fillStyle = "#4f8a43";
+    ctx.fillRect(0, 0, width, height);
+
+    /* grass details */
+
+    for (let i = 0; i < 180; i++) {
+
+        const x = (i * 97) % width;
+        const y = (i * 53) % height;
+
+        ctx.fillStyle = "#3f7437";
+
+        ctx.fillRect(x, y, 3, 3);
+    }
+}
+
+
+function drawTree(tree) {
+
+    if (tree.collected)
+        return;
+
+    /* shadow */
+
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+
+    ctx.beginPath();
+    ctx.ellipse(
+        tree.x,
+        tree.y + 22,
+        25,
+        9,
+        0,
+        0,
+        Math.PI * 2
+    );
+    ctx.fill();
+
+    /* trunk */
+
+    ctx.fillStyle = "#68452b";
+
+    ctx.fillRect(
+        tree.x - 6,
+        tree.y,
+        12,
+        25
+    );
+
+    /* leaves */
+
+    ctx.fillStyle = "#285c2c";
+
+    ctx.beginPath();
+    ctx.arc(tree.x, tree.y - 8, 25, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#34763a";
+
+    ctx.beginPath();
+    ctx.arc(tree.x - 12, tree.y - 2, 17, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(tree.x + 12, tree.y - 2, 17, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+
+function drawHouse() {
+
+    /* shadow */
+
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+
+    ctx.beginPath();
+    ctx.ellipse(
+        house.x,
+        house.y + 35,
+        48,
+        12,
+        0,
+        0,
+        Math.PI * 2
+    );
+    ctx.fill();
+
+    /* body */
+
+    ctx.fillStyle = "#a8784b";
+
+    ctx.fillRect(
+        house.x - 35,
+        house.y - 5,
+        70,
+        45
+    );
+
+    /* roof */
+
+    ctx.fillStyle = "#713d2b";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        house.x - 45,
+        house.y
+    );
+
+    ctx.lineTo(
+        house.x,
+        house.y - 40
+    );
+
+    ctx.lineTo(
+        house.x + 45,
+        house.y
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+    /* door */
+
+    ctx.fillStyle = "#42291d";
+
+    ctx.fillRect(
+        house.x - 9,
+        house.y + 14,
+        18,
+        26
+    );
+
+    /* sign */
+
+    ctx.fillStyle = "white";
+    ctx.font = "13px Arial";
+    ctx.textAlign = "center";
+
+    ctx.fillText(
+        "บ้านของฉัน",
+        house.x,
+        house.y - 48
+    );
+}
+
+
+function drawPlayer() {
+
+    /* shadow */
+
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        player.x,
+        player.y + 17,
+        15,
+        6,
+        0,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+    /* body */
+
+    ctx.fillStyle = "#315b8c";
+
+    ctx.fillRect(
+        player.x - 10,
+        player.y,
+        20,
+        20
+    );
+
+    /* head */
+
+    ctx.fillStyle = "#f0bd91";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        player.x,
+        player.y - 10,
+        10,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+    /* hair */
+
+    ctx.fillStyle = "#38271f";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        player.x,
+        player.y - 14,
+        10,
+        Math.PI,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+}
+
+
+function drawNight() {
+
+    const darkness =
+        (Math.sin(dayTime) + 1) / 2;
+
+    if (darkness > 0.72) {
+
+        const alpha =
+            (darkness - 0.72) * 0.9;
+
+        ctx.fillStyle =
+            `rgba(10,20,45,${alpha})`;
+
+        ctx.fillRect(
+            0,
+            0,
+            width,
+            height
+        );
+    }
+}
+
+
+/* =====================================================
+   GAME LOOP
+===================================================== */
+
+function gameLoop() {
+
+    update();
+
+    drawGround();
+
+    for (const tree of trees)
+        drawTree(tree);
+
+    drawHouse();
+
+    drawPlayer();
+
+    drawNight();
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+
+showMessage("🌲 ยินดีต้อนรับสู่ต่างโลก");
+
+</script>
 
 </body>
 </html>
+```
