@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>อยากโดดเดี่ยวในต่างโลก</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #101510;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .game {
+            padding: 40px 20px;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #b8c5b8;
+        }
+
+        .start {
+            margin-top: 30px;
+            padding: 15px 35px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .start:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="game">
+
+        <h1>🌲 อยากโดดเดี่ยวในต่างโลก</h1>
+
+        <p>จากบ้านหลังเล็ก... สู่เมืองของเรา</p>
+
+        <button class="start" onclick="startGame()">
+            เริ่มเกม
+        </button>
+
+        <p id="message"></p>
+
+    </div>
+
+    <script>
+        function startGame() {
+            document.getElementById("message").textContent =
+                "กำลังเดินทางเข้าสู่ต่างโลก...";
+        }
+    </script>
+
+</body>
+</html>
